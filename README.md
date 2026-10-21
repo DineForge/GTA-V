@@ -1,9 +1,4 @@
-# PlayGTA5 — download, play, and troubleshoot
-DISCORD SERVER!!
 
-https://discord.gg/ACgUGFwm4
-
-[**Play in browser / device check**](https://gta5-87g.pages.dev/__support/) · [**Download installer ZIP**](https://github.com/alihammoud21/playgta5/releases/download/full-game-v1/PlayGTA5-Installer-v2.zip) · [Installation](#download-and-play-on-windows) · [Mac](#download-and-play-on-mac) · [Higher-FPS setup](#performance--higher-fps) · [Report a problem](https://github.com/alihammoud21/playgta5/issues/new/choose)
 
 **Want controllers, cheats, and the experimental development map?** Use the separate [**PlayGTA5 Enhanced** repository](https://github.com/alihammoud21/playgta5-enhanced). It reuses this installation and adds a launcher, standard-gamepad input bridge, cheat-code entry panel, and access to the existing `env_test` level. These are experimental additions.
 
@@ -125,13 +120,6 @@ The downloader does not overwrite existing files with different contents. If you
 
 On Linux, use Python 3.11+ with `python3 download_game.py`, then `python3 serve_local.py --open`. Browser/GPU support varies; Linux gameplay has not been validated. The bundled `runtime/python.exe` is Windows-only.
 
-## Online hosting and availability
-
-**The old Vercel link is currently disabled (HTTP 402 / `DEPLOYMENT_DISABLED`).** The full deployment succeeded, but the approximately 21 GB game exceeded the account's **10 GB Hobby deployment-storage allowance**. The account notification confirmed the storage limit. This was a hosting-capacity problem, not a missing game file or a timed expiry. The complete game does not fit on that free Vercel plan. See [Vercel's storage-limit announcement](https://vercel.com/changelog/hobby-projects-now-retain-fewer-deployments-to-free-up-storage).
-
-The repository's Vercel configuration now publishes only the small help site in `public/`; it no longer rebuilds the 21 GB game on every push. This change alone does not remove existing deployment storage or reactivate a disabled account. Old large deployments must be reviewed in the Vercel dashboard before that URL can be restored.
-
-The replacement **[Cloudflare Pages site is live](https://gta5-87g.pages.dev/__support/)**. Transport and engine compilation checks passed on October 13, 2026. Free hosting has no promise of permanent availability. Its current free limits allow 20,000 files with a maximum of 25 MiB each, and static requests are free and unlimited ([limits](https://developers.cloudflare.com/pages/platform/limits/), [pricing](https://developers.cloudflare.com/pages/functions/pricing/)). `build_pages.py` verifies the downloaded mirror and splits large assets into 4 MiB pieces. The browser loader reconstructs byte ranges using cached pieces; it does not depend on a server implementing HTTP Range, paid R2 storage, or Pages Functions. Generated output stays out of Git.
 
 To build after downloading the game:
 
