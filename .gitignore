@@ -10,3 +10,7 @@ pages-output/
 hosting-probe-output/
 .wrangler/
 release-output/
+
+# Local Netlify folder
+.netlify
+node_modules/

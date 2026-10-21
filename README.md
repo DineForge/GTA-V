@@ -170,3 +170,72 @@ The compatibility page checks WebAssembly Memory64, basic WebGPU device creation
 ## Development checks
 
 Run `python3 -m unittest discover -s tests -v`, `node --check support/check.js`, and `bash -n mac-launcher.sh`. Tests cover the installer bundle, preservation/resume, checksums, unsafe paths, isolation headers, range reads, both batch formats, malformed requests, hosted startup checks, and cached piece reconstruction. With Node 24+, `node tests/check_hosted_transport.cjs https://YOUR_PROJECT.pages.dev` checks deployed headers, cross-piece ranges, the complete engine checksum, streaming compilation, and real 404 responses against the local mirror. This is a network/engine test, not a gameplay test. An existing mirror can be tested without copying it: `python3 serve_local.py --root /path/to/playgta5.com --port 8001 --open`.
+
+## BTA Netlify website
+
+The Netlify site publishes `public/`. The landing page uses the supplied BTA logo,
+Story/Sandbox selection, graphics presets, compatibility checks, and labeled empty
+advertising spaces. No advertising provider is configured.
+
+### Independent game storage
+
+The complete game payload is copied into this site's persistent Netlify Blobs
+store, `bta-game-v1`. The game runs at `/play/`, and a Netlify Function serves
+engine, data, and chunk requests from this site's own storage. There are no
+reference-site proxy routes, lazy remote downloads, or upstream fallbacks.
+GitHub release downloads are used only during administrative imports.
+
+`hosting/game-assets.json` is the immutable file catalog. It maps public asset
+paths to content-addressed storage keys. Files above 4 MiB are split into chunks,
+and `public/chunk-index.js` describes how the existing browser transport reconstructs
+the engine's byte-range reads. The catalog and chunk manifest must be deployed
+together. Runtime worker changes are applied only after the original release files
+pass inventory verification.
+
+`/api/game-status` reports ready only when the storage import has a completion
+receipt matching all 12,482 source files and 21,158,604,965 source bytes. The
+launcher checks this status before starting. Missing objects return an uncached
+error rather than redirecting to another host. The copied original `index.html`
+is retained in storage; the customized game page is served from `public/play/`.
+
+### Repeating an import
+
+Install dependencies with `npm ci`. Run `python3 scripts/download-game-assets.py`
+to download the release archives, verify their SHA-256 hashes, and extract the
+verified game files into `bta-game-assets/mirror/` under the operating system temporary directory, outside the repository. Both scripts accept `BTA_GAME_STAGING_DIR` to select another staging directory outside the repository. The downloader keeps
+at most three archive downloads active and deletes verified archives after
+extraction. Allow roughly 30 GB of temporary disk space. Keep this staging directory outside the repository: source snapshot uploads can include Git-ignored files. Once the storage copy is verified, staging files can be removed. The downloader does not build the site.
+
+Run `npm run import:game` with `NETLIFY_SITE_ID` and `NETLIFY_AUTH_TOKEN` supplied
+securely in the administration process environment. Never add these values to
+source files or browser code. The importer verifies every source file, uploads
+content-addressed objects, audits their presence, and then writes the completion
+receipt. Existing objects are reused when rerunning an interrupted import. These
+credentials are used only by the local administration script; the deployed
+Function uses Netlify's automatic runtime credentials.
+
+`node scripts/import-game.mjs --catalog-only` regenerates the catalog and client
+manifest from an already verified local mirror without accessing storage. It does
+not install assets or write a readiness receipt.
+
+### Validation and operating notes
+
+Run `npm run test:assets` for storage delivery, byte ranges, conditional requests,
+readiness, and failure behavior. `node tests/test_chunk_fetch.cjs` validates the
+browser's chunk reconstruction and streaming WebAssembly behavior.
+`node scripts/verify-game-storage.mjs` reads the completion receipt, reconstructs
+the entire stored WebAssembly engine and checks its original SHA-256 hash, then
+checks worker delivery, ranges, and missing files against the real site store.
+It uses the same securely supplied administration credentials as the importer.
+Local Netlify development uses an empty emulated Blobs store, so local readiness
+and known-but-uninstalled asset requests correctly return 503 until local assets
+are seeded; this does not indicate a problem with the independent site-level copy.
+
+Netlify storage, bandwidth, requests, and function usage apply when serving this
+large payload. The game still requires an internet connection, compatible desktop
+browser, WebGPU, shared Memory64 support, BC texture compression, and sufficient
+hardware resources. Successful asset delivery is not proof of full world rendering;
+the compiled snapshot's known engine limitations still apply.
+
+Story saves remain browser scoped. Saves from other game hosts do not transfer
+automatically. No launcher accounts or multiplayer service are included.
