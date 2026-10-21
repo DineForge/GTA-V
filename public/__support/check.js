@@ -36,6 +36,8 @@ async function check() {
     if (!report.crossOriginIsolated || !report.sharedArrayBuffer) throw new Error('Shared WebAssembly memory is unavailable. Open the site directly in your browser, outside embedded app browsers.');
     if (!report.wasmMemory64) throw new Error('This browser does not support the shared 64-bit WebAssembly memory required by this game. On iPhone/iPad, check for an iOS update and rerun this check. Lower-memory mode cannot fix this requirement; this engine cannot run in your current browser.');
     if (!report.offscreenCanvas) throw new Error('OffscreenCanvas is unavailable; this engine cannot render in the current browser.');
+    const installed = await fetch('/api/game-status', {cache: 'no-store', signal: AbortSignal.timeout(15000)});
+    if (!installed.ok || !(await installed.json()).ready) throw new Error('The complete independent game asset copy is not available. Retry later.');
     const response = await fetch('/play/', { cache: 'no-store' });
     report.pageHTTP = response.status;
     const html = await response.text();

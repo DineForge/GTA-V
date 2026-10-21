@@ -45,10 +45,13 @@ async function checkDevice() {
       catch { result('Basic GPU device', false, 'The graphics device could not start. Update the browser and GPU driver.'); }
     }
     try {
+      const status = await fetch('/api/game-status', { signal: AbortSignal.timeout(15000), cache: 'no-store' });
+      const installed = status.ok && (await status.json()).ready;
+      result('Independent game asset copy', installed, 'The complete game asset copy is not ready. Retry later.');
       const response = await fetch('/b/8b0b5899ed/loader.js', { signal: AbortSignal.timeout(15000) });
       const code = response.ok ? await response.text() : '';
       result('Game engine delivery', response.ok && code.includes('importScripts'), 'Game asset delivery is unavailable. Try again later or open the browser guide.');
-    } catch { result('Game engine delivery', false, 'The game asset host did not respond. Check your connection and try again.'); }
+    } catch { result('Game engine delivery', false, 'Game storage did not respond. Check your connection and try again.'); }
     summary.textContent = failures.length ? 'This device is not ready to launch.' : 'Basic checks passed. Ready to try.';
     feedback.textContent = failures.length ? failures.join(' ') : 'Basic checks do not guarantee world rendering or performance.';
     return failures.length === 0;

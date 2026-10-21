@@ -1,20 +1,12 @@
 [build]
   publish = "public"
 
-# Serve the compiled engine and immutable game data through this site's origin.
-# The upstream asset mirror remains necessary; the game is not an offline bundle.
-[[redirects]]
-  from = "/b/*"
-  to = "https://gta5-87g.pages.dev/b/:splat"
-  status = 200
-[[redirects]]
-  from = "/data/*"
-  to = "https://gta5-87g.pages.dev/data/:splat"
-  status = 200
-[[redirects]]
-  from = "/__chunks/*"
-  to = "https://gta5-87g.pages.dev/__chunks/:splat"
-  status = 200
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Game asset routes are handled by the game-assets Function and Netlify Blobs.
+# There are no external asset proxy routes or remote fallbacks.
 [[headers]]
   for = "/*"
   [headers.values]
