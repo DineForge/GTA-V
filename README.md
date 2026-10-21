@@ -170,3 +170,28 @@ The compatibility page checks WebAssembly Memory64, basic WebGPU device creation
 ## Development checks
 
 Run `python3 -m unittest discover -s tests -v`, `node --check support/check.js`, and `bash -n mac-launcher.sh`. Tests cover the installer bundle, preservation/resume, checksums, unsafe paths, isolation headers, range reads, both batch formats, malformed requests, hosted startup checks, and cached piece reconstruction. With Node 24+, `node tests/check_hosted_transport.cjs https://YOUR_PROJECT.pages.dev` checks deployed headers, cross-piece ranges, the complete engine checksum, streaming compilation, and real 404 responses against the local mirror. This is a network/engine test, not a gameplay test. An existing mirror can be tested without copying it: `python3 serve_local.py --root /path/to/playgta5.com --port 8001 --open`.
+
+## BTA Netlify website
+
+The Netlify site publishes `public/`. Its landing page uses the supplied BTA logo,
+Story/Sandbox selection, graphics presets, device checks, and clearly labeled empty
+advertising placements. No ad network scripts or publisher IDs are configured.
+
+The compiled game page is served locally at `/play/`; the game runs on the visitor's
+hardware. `netlify.toml` supplies the cross-origin isolation headers required by
+shared WebAssembly memory. Engine, data, and 4 MiB chunk requests are proxied through
+the site's origin to `gta5-87g.pages.dev`. The versioned chunk manifest is stored in
+`public/chunk-index.js`, with range reconstruction in `public/chunk-fetch.js`.
+The support page uses that same transport for its WebAssembly signature check.
+
+This delivery setup depends on the external mirror and is **not an independent
+21 GB asset copy**. Mirror outages or changes can break launch. Serving game data
+through Netlify consumes site bandwidth; review usage before promoting the site.
+To remove that dependency, provision the complete verified game payload and replace
+the three asset proxy destinations with a controlled asset origin. Keep the engine,
+worker files, manifest, and chunks on matching versions. Browser feature checks and
+asset delivery checks do not certify gameplay or solve known engine rendering bugs.
+
+Launch presets and mode selection are passed directly to `/play/` as engine query
+parameters. No launcher account or database is needed. Existing engine save behavior
+is browser scoped; saves on other game hosts are not automatically imported.
