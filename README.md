@@ -176,13 +176,13 @@ GitHub release downloads are used only during administrative imports.
 `hosting/game-assets.json` is the immutable file catalog. It maps public asset
 paths to content-addressed storage keys. Files above 4 MiB are split into chunks,
 and `public/chunk-index.js` describes how the existing browser transport reconstructs
-the engine's byte-range reads. The catalog and chunk manifest must be deployed
+the engine's byte-range reads. `public/assets/game-engine.json` identifies the first engine chunk for the launcher's small byte-range probe. The catalog and chunk manifest must be deployed
 together. Runtime worker changes are applied only after the original release files
 pass inventory verification.
 
 `/api/game-status` reports ready only when the storage import has a completion
 receipt matching all 12,482 source files and 21,158,604,965 source bytes. The
-launcher checks this status before starting. Missing objects return an uncached
+launcher checks this status, the loader, and the stored WebAssembly engine header before starting. Missing objects return an uncached
 error rather than redirecting to another host. The copied original `index.html`
 is retained in storage; the customized game page is served from `public/play/`.
 
@@ -190,7 +190,7 @@ is retained in storage; the customized game page is served from `public/play/`.
 
 Install dependencies with `npm ci`. Run `python3 scripts/download-game-assets.py`
 to download the release archives, verify their SHA-256 hashes, and extract the
-verified game files into `bta-game-assets/mirror/` under the operating system temporary directory, outside the repository. Both scripts accept `BTA_GAME_STAGING_DIR` to select another staging directory outside the repository. The downloader keeps
+verified game files into `bta-game-assets/mirror/` under the user cache directory (`~/.cache`), outside the repository. This avoids memory-backed temporary directories that may be too small for the payload. Both scripts accept `BTA_GAME_STAGING_DIR` to select another staging directory outside the repository. The downloader keeps
 at most three archive downloads active and deletes verified archives after
 extraction. Allow roughly 30 GB of temporary disk space. Keep this staging directory outside the repository: source snapshot uploads can include Git-ignored files. Once the storage copy is verified, staging files can be removed. The downloader does not build the site.
 
@@ -209,7 +209,7 @@ not install assets or write a readiness receipt.
 ### Validation and operating notes
 
 Run `npm run test:assets` for storage delivery, byte ranges, conditional requests,
-readiness, and failure behavior. `node tests/test_chunk_fetch.cjs` validates the
+readiness, failure behavior, and launch blocking when stored engine bytes are invalid. `node tests/test_chunk_fetch.cjs` validates the
 browser's chunk reconstruction and streaming WebAssembly behavior.
 `node scripts/verify-game-storage.mjs` reads the completion receipt, reconstructs
 the entire stored WebAssembly engine and checks its original SHA-256 hash, then

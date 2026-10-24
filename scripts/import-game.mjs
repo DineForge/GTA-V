@@ -5,12 +5,12 @@ import { createReadStream } from 'node:fs';
 import { readFile, writeFile, mkdir, open } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { tmpdir } from 'node:os';
+import { homedir } from 'node:os';
 
 async function main() {
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const stagingRoot = resolve(process.env.BTA_GAME_STAGING_DIR || resolve(tmpdir(), 'bta-game-assets'));
+const stagingRoot = resolve(process.env.BTA_GAME_STAGING_DIR || resolve(homedir(), '.cache', 'bta-game-assets'));
 if (stagingRoot === root || stagingRoot.startsWith(root + '/')) throw new Error('Game staging must be outside the repository.');
 const step = 4 * 1024 * 1024;
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -21,6 +21,7 @@ const records = inventory.files.filter(r => r.path.startsWith('mirror/playgta5.c
 const mime = path => ({ js: 'text/javascript; charset=utf-8', json: 'application/json', html: 'text/html; charset=utf-8', wasm: 'application/wasm', png: 'image/png', webp: 'image/webp', jpg: 'image/jpeg', jpeg: 'image/jpeg', woff: 'font/woff', woff2: 'font/woff2', svg: 'image/svg+xml', css: 'text/css; charset=utf-8', txt: 'text/plain; charset=utf-8' }[path.split('.').pop()] || 'application/octet-stream');
 const index = { version: 1, store: 'bta-game-v1', inventoryHash, sourceFiles: records.length, sourceBytes: records.reduce((sum, r) => sum + r.bytes, 0), files: {} };
 const manifest = { chunkSize: step, files: {} };
+let engineProbe;
 const dryRun = process.argv.includes('--catalog-only');
 let store;
 let existing = new Set();
@@ -81,6 +82,7 @@ async function processRecord(record) {
         const key = await put(bytes);
         const url = `/__chunks/${record.sha256}/${String(part).padStart(4, '0')}.bin`;
         index.files[url] = { key, size: bytes.length, type: 'application/octet-stream' };
+        if (relative.endsWith('/game.wasm') && part === 0) engineProbe = { url };
       }
     } finally { await handle.close(); }
     manifest.files['/' + relative] = { size: record.bytes, prefix: '/__chunks/' + record.sha256, type: mime(relative) };
@@ -101,9 +103,7 @@ await Promise.all(Array.from({ length: 16 }, async () => {
 }));
 index.files = Object.fromEntries(Object.entries(index.files).sort(([a], [b]) => a.localeCompare(b)));
 manifest.files = Object.fromEntries(Object.entries(manifest.files).sort(([a], [b]) => a.localeCompare(b)));
-await mkdir(resolve(root, 'hosting'), { recursive: true });
-await writeFile(resolve(root, 'hosting/game-assets.json'), JSON.stringify(index));
-await writeFile(resolve(root, 'public/chunk-index.js'), 'globalThis.GAME_CHUNKS=' + JSON.stringify(manifest) + ';\n');
+if (!engineProbe) throw new Error('No WebAssembly engine found in the verified release.');
 if (store) {
   const listed = new Set((await store.list()).blobs.map(b => b.key));
   const missing = [...expectedKeys].filter(k => !listed.has(k));
@@ -112,6 +112,12 @@ if (store) {
   await store.setJSON('ready/' + inventoryHash, receipt);
   console.log(`Independent copy complete: ${receipt.sourceFiles} verified files, ${receipt.sourceBytes} source bytes, ${receipt.objects} stored objects.`);
 } else console.log('Catalog generated only. No storage writes occurred.');
+// Publish matching runtime catalogs only after the complete import passes its audit.
+await mkdir(resolve(root, 'hosting'), { recursive: true });
+await mkdir(resolve(root, 'public/assets'), { recursive: true });
+await writeFile(resolve(root, 'hosting/game-assets.json'), JSON.stringify(index));
+await writeFile(resolve(root, 'public/chunk-index.js'), 'globalThis.GAME_CHUNKS=' + JSON.stringify(manifest) + ';\n');
+await writeFile(resolve(root, 'public/assets/game-engine.json'), JSON.stringify(engineProbe) + '\n');
 
 }
 

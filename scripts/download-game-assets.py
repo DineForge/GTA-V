@@ -2,7 +2,6 @@
 import concurrent.futures
 import json
 import os
-import tempfile
 from pathlib import Path
 import subprocess
 import sys
@@ -11,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from download_game import digest, extract_payload, target_path
 
 ROOT = Path(__file__).resolve().parents[1]
-STAGING = Path(os.environ.get('BTA_GAME_STAGING_DIR', str(Path(tempfile.gettempdir()) / 'bta-game-assets'))).resolve()
+STAGING = Path(os.environ.get('BTA_GAME_STAGING_DIR', str(Path.home() / '.cache' / 'bta-game-assets'))).resolve()
 
 def main():
     manifest = json.loads((ROOT / 'download-manifest.json').read_text())
