@@ -15,6 +15,10 @@ const request = (path, headers = {}, method = 'GET') => new Request('https://bta
 const status = await serveGameAsset(request('/api/game-status'), store, catalog);
 if (status.status !== 200 || !(await status.json()).ready) throw new Error('Complete-copy readiness check failed.');
 console.log('Complete-copy readiness: passed.');
+const probe = JSON.parse(await readFile(new URL('../public/assets/game-engine.json', import.meta.url)));
+const header = await serveGameAsset(request(probe.url, { Range: 'bytes=0-7' }), store, catalog);
+if (header.status !== 206 || !Buffer.from(await header.arrayBuffer()).equals(Buffer.from([0,97,115,109,1,0,0,0]))) throw new Error('Launcher engine probe failed.');
+console.log('Launcher engine byte-range probe: passed.');
 
 const wasm = inventory.files.find(r => r.path.endsWith('/game.wasm'));
 const wasmPath = '/' + wasm.path.slice('mirror/playgta5.com/'.length);

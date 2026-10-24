@@ -51,6 +51,12 @@ async function checkDevice() {
       const response = await fetch('/b/8b0b5899ed/loader.js', { signal: AbortSignal.timeout(15000) });
       const code = response.ok ? await response.text() : '';
       result('Game engine delivery', response.ok && code.includes('importScripts'), 'Game asset delivery is unavailable. Try again later or open the browser guide.');
+      const probeResponse = await fetch('/assets/game-engine.json', { signal: AbortSignal.timeout(15000), cache: 'no-cache' });
+      if (!probeResponse.ok) throw new Error('Engine manifest unavailable');
+      const probe = await probeResponse.json();
+      const engine = await fetch(probe.url, { headers: { Range: 'bytes=0-7' }, signal: AbortSignal.timeout(30000) });
+      const header = engine.ok ? new Uint8Array(await engine.arrayBuffer()) : new Uint8Array();
+      result('Stored WebAssembly engine', engine.status === 206 && header.length === 8 && [0,97,115,109,1,0,0,0].every((byte, i) => header[i] === byte), 'The game engine could not be read from storage. Retry or open the browser guide.');
     } catch { result('Game engine delivery', false, 'Game storage did not respond. Check your connection and try again.'); }
     summary.textContent = failures.length ? 'This device is not ready to launch.' : 'Basic checks passed. Ready to try.';
     feedback.textContent = failures.length ? failures.join(' ') : 'Basic checks do not guarantee world rendering or performance.';

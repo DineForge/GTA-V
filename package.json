@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "import:game": "node scripts/import-game.mjs",
-    "test:assets": "node --test tests/game-assets.test.mjs"
+    "test:assets": "node --test tests/game-assets.test.mjs tests/launcher.test.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^10.0.0",
